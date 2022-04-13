@@ -16,16 +16,15 @@ import { promisify } from 'node:util';
 @Injectable()
 export class AuthorizationGuard implements CanActivate {
   private AUTH0_AUDIENCE: string;
-  private AUTH0_DOMAN: string;
+  private AUTH0_DOMAIN: string;
 
   constructor(private configService: ConfigService) {
     this.AUTH0_AUDIENCE = this.configService.get('AUTH0_AUDIENCE') ?? '';
-    this.AUTH0_DOMAN = this.configService.get('AUTH0_DOMAN') ?? '';
+    this.AUTH0_DOMAIN = this.configService.get('AUTH0_DOMAIN') ?? '';
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const { request, response } =
-      GqlExecutionContext.create(context).getContext();
+    const { req, res } = GqlExecutionContext.create(context).getContext();
 
     const checkJWT = promisify(
       jwt({
@@ -33,16 +32,16 @@ export class AuthorizationGuard implements CanActivate {
           cache: true,
           rateLimit: true,
           jwksRequestsPerMinute: 5,
-          jwksUri: `${this.AUTH0_DOMAN}.well-known/jwks.json`,
+          jwksUri: `${this.AUTH0_DOMAIN}.well-known/jwks.json`,
         }),
         audience: this.AUTH0_AUDIENCE,
-        issuer: this.AUTH0_DOMAN,
+        issuer: this.AUTH0_DOMAIN,
         algorithms: ['RS256'],
       }),
     );
 
     try {
-      await checkJWT(request, response);
+      await checkJWT(req, res);
 
       return true;
     } catch (error) {
